@@ -1,5 +1,3 @@
-// var converter = new Showdown.converter();
-
 var CommentBox = React.createClass({
   loadCommentsFromServer: function() {
     $.ajax({
@@ -30,20 +28,37 @@ var CommentBox = React.createClass({
     });
   },
   getInitialState: function() {
-    return {
-      data: {}
-    };
+    return { data: {} };
   },
   componentDidMount: function() {
     this.loadCommentsFromServer();
-    setInterval(this.loadCommentsFromServer, this.props.pollInterval)
+    // setInterval(this.loadCommentsFromServer, this.props.pollInterval)
+  },
+  handleReply: function(user) {
+    this.setState({replyUser:user})
   },
   render: function() {
+    var commentNodes = function() {
+      return (
+        <Comment />
+      );
+    }
+
+    if(this.state.data.data) {
+      // console.log(this.handleReply)
+      commentNodes = this.state.data.data.comment.map(function(comment,i) {
+        return (
+          <Comment content={comment} index={i} onReply={this.handleReply}/>
+        );
+      });
+    }
     return (
       <div className="commentBox">
         <h1>Comments</h1>
-        <CommentList data={this.state.data}/>
-        <CommentForm onCommentSubmit={this.handleCommentSubmit}/>
+        <div className="commentList">
+          {commentNodes}
+        </div>
+        <CommentForm onCommentSubmit={this.handleCommentSubmit} replyUser={this.state.replyUser}/>
       </div>
     );
   }
@@ -51,9 +66,20 @@ var CommentBox = React.createClass({
 });
 
 var Comment = React.createClass({
+  onReply: function(e) {
+    e.preventDefault();
+    console.log(this.props.onReply)
+    if(this.props.onReply) {
+      console.log(this.content.user)
+      return this.props.onReply(this.content.user);
+    }
+    return;
+  },
   render: function() {
     var comment = this.props.content;
+    this.content = comment;
     var editBtn,deleteBtn;
+    console.log(this.props.onReply) // undefine
 
     if(comment.access.canEdit) {
       editBtn = function() {
@@ -69,12 +95,17 @@ var Comment = React.createClass({
         )
       }
     }
+    // console.log(editBtn)
+
     return (
       <div className="comment">
         <div dangerouslySetInnerHTML={{__html:comment.parsedText}} />
+        <a href="">{this.props.index}</a>
+        &middot;
         <a href={comment.user.url} >{comment.user.name}</a>
+        &middot;
         {comment.createdDate}
-        <a href="">回复</a>
+        <a href="" onClick={this.onReply}>回复</a>
         {editBtn}
         {deleteBtn}
       </div>
@@ -82,48 +113,25 @@ var Comment = React.createClass({
   }
 })
 
-var CommentList = React.createClass({
-  render: function() {
-    // console.log(this.props.data)
-    var commentNodes = function(){
-      return (
-        <Comment />
-      );
-    };
-    if(this.props.data.data) {
-      // console.log(this.props.data.data)
-      commentNodes = this.props.data.data.comment.map(function(comment) {
-        return (
-          <Comment content={comment} />
-        );
-      });
-    }
-    
-    return (
-      <div className="commentList">
-        {commentNodes}
-      </div>
-    );
-  }
-});
-
 var CommentForm = React.createClass({
   handleSubmit: function(e) {
     e.preventDefault();
-    var author = this.refs.author.getDOMNode().value.trim();
     var text = this.refs.text.getDOMNode().value.trim();
-    if(!author || !text) {
+    if(!text) {
       return;
     }
-    this.props.onCommentSubmit({author: author,text: text})
-    this.refs.author.getDOMNode().value = '';
+    this.props.onCommentSubmit({text: text})
     this.refs.text.getDOMNode().value = '';
     return;
   },
   render: function() {
+    var replyUser;
+    if(this.props.replyUser) {
+      replyUser = this.props.replyUser.name
+    }
     return (
       <form className="commentForm" onSubmit={this.handleSubmit}>
-        <input type="text" placeholder="your name" ref="author"/>
+        {replyUser}
         <textarea placeholder="type something..." ref="text"/>
         <input type="submit" value="Post"/>
       </form>

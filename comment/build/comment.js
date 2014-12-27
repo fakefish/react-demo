@@ -1,5 +1,3 @@
-// var converter = new Showdown.converter();
-
 var CommentBox = React.createClass({displayName: "CommentBox",
   loadCommentsFromServer: function() {
     $.ajax({
@@ -30,20 +28,37 @@ var CommentBox = React.createClass({displayName: "CommentBox",
     });
   },
   getInitialState: function() {
-    return {
-      data: {}
-    };
+    return { data: {} };
   },
   componentDidMount: function() {
     this.loadCommentsFromServer();
-    setInterval(this.loadCommentsFromServer, this.props.pollInterval)
+    // setInterval(this.loadCommentsFromServer, this.props.pollInterval)
+  },
+  handleReply: function(user) {
+    this.setState({replyUser:user})
   },
   render: function() {
+    var commentNodes = function() {
+      return (
+        React.createElement(Comment, null)
+      );
+    }
+
+    if(this.state.data.data) {
+      // console.log(this.handleReply)
+      commentNodes = this.state.data.data.comment.map(function(comment,i) {
+        return (
+          React.createElement(Comment, {content: comment, index: i, onReply: this.handleReply})
+        );
+      });
+    }
     return (
       React.createElement("div", {className: "commentBox"}, 
         React.createElement("h1", null, "Comments"), 
-        React.createElement(CommentList, {data: this.state.data}), 
-        React.createElement(CommentForm, {onCommentSubmit: this.handleCommentSubmit})
+        React.createElement("div", {className: "commentList"}, 
+          commentNodes
+        ), 
+        React.createElement(CommentForm, {onCommentSubmit: this.handleCommentSubmit, replyUser: this.state.replyUser})
       )
     );
   }
@@ -51,9 +66,20 @@ var CommentBox = React.createClass({displayName: "CommentBox",
 });
 
 var Comment = React.createClass({displayName: "Comment",
+  onReply: function(e) {
+    e.preventDefault();
+    console.log(this.props.onReply)
+    if(this.props.onReply) {
+      console.log(this.content.user)
+      return this.props.onReply(this.content.user);
+    }
+    return;
+  },
   render: function() {
     var comment = this.props.content;
+    this.content = comment;
     var editBtn,deleteBtn;
+    console.log(this.props.onReply) // undefine
 
     if(comment.access.canEdit) {
       editBtn = function() {
@@ -69,12 +95,17 @@ var Comment = React.createClass({displayName: "Comment",
         )
       }
     }
+    // console.log(editBtn)
+
     return (
       React.createElement("div", {className: "comment"}, 
         React.createElement("div", {dangerouslySetInnerHTML: {__html:comment.parsedText}}), 
+        React.createElement("a", {href: ""}, this.props.index), 
+        "·", 
         React.createElement("a", {href: comment.user.url}, comment.user.name), 
+        "·", 
         comment.createdDate, 
-        React.createElement("a", {href: ""}, "回复"), 
+        React.createElement("a", {href: "", onClick: this.onReply}, "回复"), 
         editBtn, 
         deleteBtn
       )
@@ -82,48 +113,25 @@ var Comment = React.createClass({displayName: "Comment",
   }
 })
 
-var CommentList = React.createClass({displayName: "CommentList",
-  render: function() {
-    // console.log(this.props.data)
-    var commentNodes = function(){
-      return (
-        React.createElement(Comment, null)
-      );
-    };
-    if(this.props.data.data) {
-      // console.log(this.props.data.data)
-      commentNodes = this.props.data.data.comment.map(function(comment) {
-        return (
-          React.createElement(Comment, {content: comment})
-        );
-      });
-    }
-    
-    return (
-      React.createElement("div", {className: "commentList"}, 
-        commentNodes
-      )
-    );
-  }
-});
-
 var CommentForm = React.createClass({displayName: "CommentForm",
   handleSubmit: function(e) {
     e.preventDefault();
-    var author = this.refs.author.getDOMNode().value.trim();
     var text = this.refs.text.getDOMNode().value.trim();
-    if(!author || !text) {
+    if(!text) {
       return;
     }
-    this.props.onCommentSubmit({author: author,text: text})
-    this.refs.author.getDOMNode().value = '';
+    this.props.onCommentSubmit({text: text})
     this.refs.text.getDOMNode().value = '';
     return;
   },
   render: function() {
+    var replyUser;
+    if(this.props.replyUser) {
+      replyUser = this.props.replyUser.name
+    }
     return (
       React.createElement("form", {className: "commentForm", onSubmit: this.handleSubmit}, 
-        React.createElement("input", {type: "text", placeholder: "your name", ref: "author"}), 
+        replyUser, 
         React.createElement("textarea", {placeholder: "type something...", ref: "text"}), 
         React.createElement("input", {type: "submit", value: "Post"})
       )
