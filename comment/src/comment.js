@@ -32,15 +32,17 @@ var CommentBox = React.createClass({
   },
   componentDidMount: function() {
     this.loadCommentsFromServer();
+    this.handleReply();
     // setInterval(this.loadCommentsFromServer, this.props.pollInterval)
   },
   handleReply: function(user) {
-    this.setState({replyUser:user})
+    console.log(user)
+    this.setState({replyUser:user});
   },
   render: function() {
     var commentNodes = function() {
       return (
-        <Comment />
+        <Comment onReply={this.handleReply}/>
       );
     }
 
@@ -67,19 +69,20 @@ var CommentBox = React.createClass({
 
 var Comment = React.createClass({
   onReply: function(e) {
-    e.preventDefault();
+    
     console.log(this.props.onReply)
     if(this.props.onReply) {
       console.log(this.content.user)
       return this.props.onReply(this.content.user);
     }
+    e.preventDefault();
     return;
   },
   render: function() {
     var comment = this.props.content;
     this.content = comment;
     var editBtn,deleteBtn;
-    console.log(this.props.onReply) // undefine
+    // console.log(this.props.onReply) // undefine
 
     if(comment.access.canEdit) {
       editBtn = function() {
@@ -95,10 +98,11 @@ var Comment = React.createClass({
         )
       }
     }
-    // console.log(editBtn)
+    // console.log(this.onReply)
 
     return (
       <div className="comment">
+        <LikeBtn />
         <div dangerouslySetInnerHTML={{__html:comment.parsedText}} />
         <a href="">{this.props.index}</a>
         &middot;
@@ -139,6 +143,24 @@ var CommentForm = React.createClass({
   }
 });
 
+var LikeBtn = React.createClass({
+  getInitialState: function() {
+    return {
+      like: false
+    };
+  },
+  handleLike: function(e) {
+    this.setState({like:!this.state.like});
+    e.preventDefault();
+  },
+  render: function() {
+    var active = this.state.like ? 'active' : '';
+    var text = this.state.like ? 'like' : 'unlike';
+    return (
+      <a onClick={this.handleLike} href="###" className={active}>{text}</a>
+    );
+  }
+})
 
 
 React.render(
