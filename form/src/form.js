@@ -222,6 +222,9 @@ module.exports = React.createClass({
     </form>
     );
     function _text(text) {
+      // 如果没有text，返回-
+      // 把内容中的\n变成br标签
+      // 否则返回text
       return text ? (/\n/.test(text) ? text.split(/\n/).map(function(t) { return <span>{t}<br /></span> }) : text) : ' - ';
     }
     function _error(msg) {
